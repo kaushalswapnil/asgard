@@ -1,0 +1,271 @@
+-- ============================================================
+-- EBP AI Assistant - Seed Data (UK Regions)
+-- ============================================================
+
+-- -------------------------
+-- LOCATIONS (10 stores)
+-- -------------------------
+INSERT INTO location (name, city, region) VALUES
+  ('Store London Oxford St',   'London',     'England'),
+  ('Store London Canary Wharf','London',     'England'),
+  ('Store Manchester Arndale', 'Manchester', 'England'),
+  ('Store Birmingham Bullring','Birmingham', 'England'),
+  ('Store Leeds Trinity',      'Leeds',      'England'),
+  ('Store Bristol Cabot',      'Bristol',    'England'),
+  ('Store Edinburgh Princes',  'Edinburgh',  'Scotland'),
+  ('Store Glasgow Buchanan',   'Glasgow',    'Scotland'),
+  ('Store Cardiff St David',   'Cardiff',    'Wales'),
+  ('Store Belfast Victoria',   'Belfast',    'Northern Ireland');
+
+-- -------------------------
+-- EMPLOYEES (500)
+-- -------------------------
+DO $$
+DECLARE
+  first_names TEXT[] := ARRAY[
+    'Oliver','George','Harry','Jack','Noah','Charlie','Jacob','Alfie','Freddie','Oscar',
+    'Leo','Henry','Archie','Ethan','Joshua','James','William','Thomas','Lucas','Mason',
+    'Olivia','Amelia','Isla','Ava','Emily','Isabella','Mia','Poppy','Ella','Lily',
+    'Sophie','Grace','Freya','Charlotte','Alice','Evie','Florence','Daisy','Ruby','Chloe',
+    'Liam','Rory','Callum','Hamish','Angus','Finlay','Duncan','Ewan','Craig','Ross',
+    'Rhys','Dylan','Gethin','Owain','Sion','Cerys','Bethan','Ffion','Nia','Seren'
+  ];
+  last_names TEXT[] := ARRAY[
+    'Smith','Jones','Williams','Taylor','Brown','Davies','Evans','Wilson','Thomas','Roberts',
+    'Johnson','Walker','Wright','Robinson','Thompson','White','Hughes','Edwards','Green','Hall',
+    'Lewis','Harris','Clarke','Patel','Jackson','Wood','Turner','Martin','Cooper','Hill',
+    'Ward','Morris','Moore','Clark','Lee','King','Baker','Harrison','Morgan','Allen',
+    'Scott','Young','Mitchell','Anderson','Campbell','Stewart','Murray','Reid','Ross','MacDonald'
+  ];
+  roles TEXT[] := ARRAY[
+    'Store Manager','Assistant Manager','Sales Associate','Cashier',
+    'Inventory Specialist','Customer Service Rep','Team Lead','Security Officer'
+  ];
+  i INT;
+  emp_name TEXT;
+  emp_email TEXT;
+  emp_role TEXT;
+  emp_loc INT;
+  emp_hire DATE;
+BEGIN
+  FOR i IN 1..500 LOOP
+    emp_name  := first_names[1 + ((i * 7) % array_length(first_names, 1))]
+                 || ' ' ||
+                 last_names[1 + ((i * 13) % array_length(last_names, 1))];
+    emp_email := lower(replace(emp_name, ' ', '.')) || i || '@ebp.co.uk';
+    emp_role  := roles[1 + ((i * 3) % array_length(roles, 1))];
+    emp_loc   := 1 + ((i - 1) % 10);
+    emp_hire  := DATE '2018-01-01' + ((i * 17) % 2000) * INTERVAL '1 day';
+
+    INSERT INTO employee (name, email, role, location_id, hire_date, is_active)
+    VALUES (emp_name, emp_email, emp_role, emp_loc, emp_hire, TRUE);
+  END LOOP;
+END $$;
+
+-- -------------------------
+-- FULL-DAY LEAVES (~2000 records, ~4 per employee)
+-- -------------------------
+DO $$
+DECLARE
+  i INT;
+  leave_types TEXT[] := ARRAY['SICK','CASUAL','EARNED','UNPAID'];
+  base_date DATE := DATE '2023-01-01';
+BEGIN
+  FOR i IN 1..500 LOOP
+    -- Leave 1
+    INSERT INTO employee_leave (employee_id, leave_date, leave_type, status)
+    VALUES (i, base_date + ((i * 11) % 365) * INTERVAL '1 day',
+            leave_types[1 + ((i)     % 4)], 'APPROVED');
+    -- Leave 2
+    INSERT INTO employee_leave (employee_id, leave_date, leave_type, status)
+    VALUES (i, base_date + ((i * 23) % 365) * INTERVAL '1 day',
+            leave_types[1 + ((i + 1) % 4)], 'APPROVED');
+    -- Leave 3 (2024)
+    INSERT INTO employee_leave (employee_id, leave_date, leave_type, status)
+    VALUES (i, DATE '2024-01-01' + ((i * 17) % 365) * INTERVAL '1 day',
+            leave_types[1 + ((i + 2) % 4)], 'APPROVED');
+    -- Leave 4 (2024, some pending)
+    INSERT INTO employee_leave (employee_id, leave_date, leave_type, status)
+    VALUES (i, DATE '2024-06-01' + ((i * 7)  % 180) * INTERVAL '1 day',
+            leave_types[1 + ((i + 3) % 4)],
+            CASE WHEN i % 10 = 0 THEN 'PENDING' ELSE 'APPROVED' END);
+  END LOOP;
+END $$;
+
+-- -------------------------
+-- HALF-DAY LEAVES (~500 records, ~1 per employee)
+-- -------------------------
+DO $$
+DECLARE
+  i INT;
+  leave_types TEXT[] := ARRAY['SICK','CASUAL','EARNED'];
+  halves      TEXT[] := ARRAY['MORNING','AFTERNOON'];
+  base_date DATE := DATE '2023-03-01';
+BEGIN
+  FOR i IN 1..500 LOOP
+    INSERT INTO employee_half_day_leave (employee_id, leave_date, half, leave_type, status)
+    VALUES (
+      i,
+      base_date + ((i * 19) % 600) * INTERVAL '1 day',
+      halves[1 + (i % 2)],
+      leave_types[1 + (i % 3)],
+      'APPROVED'
+    );
+  END LOOP;
+END $$;
+
+-- -------------------------
+-- LOCATION HOLIDAYS (UK public holidays, 2023-2025)
+-- -------------------------
+
+-- England & Wales bank holidays (locations 1-6, 9)
+DO $$
+DECLARE
+  loc INT;
+  eng_holidays DATE[] := ARRAY[
+    -- 2023
+    DATE '2023-01-02', DATE '2023-04-07', DATE '2023-04-10',
+    DATE '2023-05-01', DATE '2023-05-08', DATE '2023-08-28',
+    DATE '2023-12-25', DATE '2023-12-26',
+    -- 2024
+    DATE '2024-01-01', DATE '2024-03-29', DATE '2024-04-01',
+    DATE '2024-05-06', DATE '2024-05-27', DATE '2024-08-26',
+    DATE '2024-12-25', DATE '2024-12-26',
+    -- 2025
+    DATE '2025-01-01', DATE '2025-04-18', DATE '2025-04-21',
+    DATE '2025-05-05', DATE '2025-05-26', DATE '2025-08-25',
+    DATE '2025-12-25', DATE '2025-12-26'
+  ];
+  eng_names TEXT[] := ARRAY[
+    -- 2023
+    'New Year''s Day (substitute)','Good Friday','Easter Monday',
+    'Early May Bank Holiday','Coronation Bank Holiday','Summer Bank Holiday',
+    'Christmas Day','Boxing Day',
+    -- 2024
+    'New Year''s Day','Good Friday','Easter Monday',
+    'Early May Bank Holiday','Spring Bank Holiday','Summer Bank Holiday',
+    'Christmas Day','Boxing Day',
+    -- 2025
+    'New Year''s Day','Good Friday','Easter Monday',
+    'Early May Bank Holiday','Spring Bank Holiday','Summer Bank Holiday',
+    'Christmas Day','Boxing Day'
+  ];
+  h INT;
+BEGIN
+  FOREACH loc IN ARRAY ARRAY[1,2,3,4,5,6,9] LOOP
+    FOR h IN 1..array_length(eng_holidays, 1) LOOP
+      INSERT INTO location_holiday (location_id, holiday_date, holiday_name)
+      VALUES (loc, eng_holidays[h], eng_names[h]);
+    END LOOP;
+  END LOOP;
+END $$;
+
+-- Scotland bank holidays (locations 7, 8)
+DO $$
+DECLARE
+  loc INT;
+  scot_holidays DATE[] := ARRAY[
+    -- 2023
+    DATE '2023-01-02', DATE '2023-01-03', DATE '2023-04-07',
+    DATE '2023-05-01', DATE '2023-05-08', DATE '2023-08-07',
+    DATE '2023-11-30', DATE '2023-12-25', DATE '2023-12-26',
+    -- 2024
+    DATE '2024-01-01', DATE '2024-01-02', DATE '2024-03-29',
+    DATE '2024-05-06', DATE '2024-05-27', DATE '2024-08-05',
+    DATE '2024-12-02', DATE '2024-12-25', DATE '2024-12-26',
+    -- 2025
+    DATE '2025-01-01', DATE '2025-01-02', DATE '2025-04-18',
+    DATE '2025-05-05', DATE '2025-05-26', DATE '2025-08-04',
+    DATE '2025-12-01', DATE '2025-12-25', DATE '2025-12-26'
+  ];
+  scot_names TEXT[] := ARRAY[
+    -- 2023
+    'New Year''s Day','2nd January','Good Friday',
+    'Early May Bank Holiday','Coronation Bank Holiday','Summer Bank Holiday',
+    'St Andrew''s Day','Christmas Day','Boxing Day',
+    -- 2024
+    'New Year''s Day','2nd January','Good Friday',
+    'Early May Bank Holiday','Spring Bank Holiday','Summer Bank Holiday',
+    'St Andrew''s Day','Christmas Day','Boxing Day',
+    -- 2025
+    'New Year''s Day','2nd January','Good Friday',
+    'Early May Bank Holiday','Spring Bank Holiday','Summer Bank Holiday',
+    'St Andrew''s Day','Christmas Day','Boxing Day'
+  ];
+  h INT;
+BEGIN
+  FOREACH loc IN ARRAY ARRAY[7,8] LOOP
+    FOR h IN 1..array_length(scot_holidays, 1) LOOP
+      INSERT INTO location_holiday (location_id, holiday_date, holiday_name)
+      VALUES (loc, scot_holidays[h], scot_names[h]);
+    END LOOP;
+  END LOOP;
+END $$;
+
+-- Northern Ireland bank holidays (location 10)
+DO $$
+DECLARE
+  ni_holidays DATE[] := ARRAY[
+    -- 2023
+    DATE '2023-01-02', DATE '2023-03-17', DATE '2023-04-07',
+    DATE '2023-04-10', DATE '2023-05-01', DATE '2023-05-08',
+    DATE '2023-07-12', DATE '2023-08-28', DATE '2023-12-25', DATE '2023-12-26',
+    -- 2024
+    DATE '2024-01-01', DATE '2024-03-18', DATE '2024-03-29',
+    DATE '2024-04-01', DATE '2024-05-06', DATE '2024-05-27',
+    DATE '2024-07-12', DATE '2024-08-26', DATE '2024-12-25', DATE '2024-12-26',
+    -- 2025
+    DATE '2025-01-01', DATE '2025-03-17', DATE '2025-04-18',
+    DATE '2025-04-21', DATE '2025-05-05', DATE '2025-05-26',
+    DATE '2025-07-14', DATE '2025-08-25', DATE '2025-12-25', DATE '2025-12-26'
+  ];
+  ni_names TEXT[] := ARRAY[
+    -- 2023
+    'New Year''s Day (substitute)','St Patrick''s Day (substitute)','Good Friday',
+    'Easter Monday','Early May Bank Holiday','Coronation Bank Holiday',
+    'Battle of the Boyne','Summer Bank Holiday','Christmas Day','Boxing Day',
+    -- 2024
+    'New Year''s Day','St Patrick''s Day (substitute)','Good Friday',
+    'Easter Monday','Early May Bank Holiday','Spring Bank Holiday',
+    'Battle of the Boyne','Summer Bank Holiday','Christmas Day','Boxing Day',
+    -- 2025
+    'New Year''s Day','St Patrick''s Day','Good Friday',
+    'Easter Monday','Early May Bank Holiday','Spring Bank Holiday',
+    'Battle of the Boyne','Summer Bank Holiday','Christmas Day','Boxing Day'
+  ];
+  h INT;
+BEGIN
+  FOR h IN 1..array_length(ni_holidays, 1) LOOP
+    INSERT INTO location_holiday (location_id, holiday_date, holiday_name)
+    VALUES (10, ni_holidays[h], ni_names[h]);
+  END LOOP;
+END $$;
+
+-- -------------------------
+-- STORE SECONDARY SCHEDULES
+-- -------------------------
+
+-- Recurring: all stores open Sundays with reduced hours
+INSERT INTO store_secondary_schedule (location_id, schedule_date, day_of_week, start_time, end_time, notes)
+SELECT id, NULL, 0, '11:00', '17:00', 'Sunday trading hours'
+FROM location;
+
+-- Christmas Eve extended hours (all stores)
+INSERT INTO store_secondary_schedule (location_id, schedule_date, day_of_week, start_time, end_time, notes)
+SELECT id, '2024-12-24', NULL, '08:00', '22:00', 'Christmas Eve extended'
+FROM location;
+
+-- Boxing Day sale extended hours (England & Wales stores only)
+INSERT INTO store_secondary_schedule (location_id, schedule_date, day_of_week, start_time, end_time, notes) VALUES
+  (1, '2024-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (2, '2024-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (3, '2024-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (4, '2024-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (5, '2024-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (6, '2024-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (9, '2024-12-26', NULL, '09:00', '21:00', 'Boxing Day sale');
+
+-- Black Friday extended hours (all stores)
+INSERT INTO store_secondary_schedule (location_id, schedule_date, day_of_week, start_time, end_time, notes)
+SELECT id, '2024-11-29', NULL, '07:00', '23:00', 'Black Friday extended'
+FROM location;

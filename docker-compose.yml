@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: ebp-postgres
+    environment:
+      POSTGRES_DB: ebpdb
+      POSTGRES_USER: ebpuser
+      POSTGRES_PASSWORD: ebppass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ebpuser -d ebpdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── pgAdmin ─────────────────────────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ebp-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ebp.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  # ── Redis (Superset cache + Celery broker) ──────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ebp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Apache Superset ─────────────────────────────────────────────────────────
+  superset:
+    build:
+      context: ./superset
+      dockerfile: Dockerfile
+    container_name: ebp-superset
+    environment:
+      SUPERSET_SECRET_KEY: "ebp-superset-secret-key-change-in-prod"
+      SUPERSET_CONFIG_PATH: /app/superset/superset_config.py
+      DATABASE_URL: "postgresql+psycopg2://ebpuser:ebppass@ebp-postgres:5432/ebpdb"
+      REDIS_URL: "redis://ebp-redis:6379/0"
+      PYTHONPATH: /app/superset
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./superset:/app/superset
+      - superset_home:/app/superset_home
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  redis_data:
+  superset_home:

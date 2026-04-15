@@ -1,0 +1,118 @@
+.about-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.about-title    { font-size: 1.8rem; font-weight: 800; color: var(--text); margin: 0 0 0.25rem; }
+.about-tagline  { font-size: 0.95rem; color: var(--text-muted); margin: 0; }
+
+.about-description {
+  padding: 1.5rem;
+  margin-bottom: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.about-description p { font-size: 0.92rem; color: var(--text); line-height: 1.7; margin: 0; }
+.about-description strong { color: var(--text); }
+
+.about-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.about-stat {
+  flex: 1;
+  min-width: 100px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  border-top: 3px solid var(--primary);
+}
+.about-stat-value { font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1; }
+.about-stat-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+
+.about-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 1rem;
+}
+
+.about-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.about-feature {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem;
+  align-items: flex-start;
+}
+.about-feature-icon  { font-size: 1.6rem; flex-shrink: 0; }
+.about-feature-title { font-size: 0.92rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+.about-feature-desc  { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+.quote-slider {
+  padding: 2rem 1.75rem 1.25rem;
+  text-align: center;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.quote-content {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.quote-visible { opacity: 1; transform: translateY(0); }
+.quote-hidden  { opacity: 0; transform: translateY(10px); }
+
+.quote-mark {
+  font-size: 2.5rem;
+  color: var(--primary);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.quote-text {
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.7;
+  margin: 0 0 0.75rem;
+  max-width: 600px;
+}
+
+.quote-author {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0;
+}
+
+.quote-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.quote-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.quote-dot.active {
+  background: var(--primary);
+  transform: scale(1.3);
+}
