@@ -2,24 +2,53 @@ import { useFetch } from '../hooks/useFetch'
 import { getLocations } from '../api'
 import { Spinner, ErrorMsg } from '../components/UI'
 import { useNavigate } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label } from 'recharts'
 import './Dashboard.css'
 
-const REGION_COLORS = { England: '#3b82f6', Scotland: '#8b5cf6', Wales: '#10b981', 'Northern Ireland': '#f59e0b' }
+const REGION_COLORS = {
+  England:          '#3b82f6',
+  Scotland:         '#8b5cf6',
+  Wales:            '#10b981',
+  'Northern Ireland': '#f59e0b',
+}
+
+// Darker shades for the extrusion / depth layer
+const REGION_DEPTH = {
+  England:          '#1d4ed8',
+  Scotland:         '#5b21b6',
+  Wales:            '#065f46',
+  'Northern Ireland': '#92400e',
+}
+
+const CustomTooltip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null
+  const { region, count, pct } = payload[0].payload
+  return (
+    <div className="donut-tooltip">
+      <span className="donut-tooltip-dot" style={{ background: REGION_COLORS[region] }} />
+      <strong className="donut-tooltip-region">{region}</strong>
+      <span className="donut-tooltip-count">{count} store{count !== 1 ? 's' : ''} · {pct}%</span>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const { data: locations, loading, error } = useFetch(getLocations, [])
   const navigate = useNavigate()
 
   if (loading) return <Spinner />
-  if (error) return <ErrorMsg message={error} />
+  if (error)   return <ErrorMsg message={error} />
 
-  const byRegion = locations.reduce((acc, loc) => {
+  const byRegion  = locations.reduce((acc, loc) => {
     acc[loc.region] = (acc[loc.region] || 0) + 1
     return acc
   }, {})
-
-  const chartData = Object.entries(byRegion).map(([region, count]) => ({ region, count }))
+  const total     = locations.length
+  const chartData = Object.entries(byRegion).map(([region, count]) => ({
+    region,
+    count,
+    pct: Math.round((count / total) * 100),
+  }))
 
   return (
     <div className="page">
@@ -28,52 +57,126 @@ export default function Dashboard() {
         <p>Overview of all EBP stores across the UK</p>
       </div>
 
-      <div className="stats-row">
-        <div className="stat-card">
-          <div className="stat-value">{locations.length}</div>
-          <div className="stat-label">Total Stores</div>
-        </div>
-        {Object.entries(byRegion).map(([region, count]) => (
-          <div className="stat-card" key={region} style={{ borderTop: `3px solid ${REGION_COLORS[region]}` }}>
-            <div className="stat-value" style={{ color: REGION_COLORS[region] }}>{count}</div>
-            <div className="stat-label">{region}</div>
-          </div>
-        ))}
-      </div>
-
       <div className="dashboard-grid">
-        <div className="card">
-          <h2>Stores by Region</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-              <XAxis dataKey="region" tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry) => (
-                  <Cell key={entry.region} fill={REGION_COLORS[entry.region] || '#3b82f6'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+
+        {/* ── 3D Donut card ── */}
+        <div className="donut-card">
+          <div className="donut-card-header">
+            <div>
+              <div className="donut-card-title">Stores by Region</div>
+              <div className="donut-card-sub">UK retail network</div>
+            </div>
+            <div className="donut-card-total">
+              <span className="donut-total-num">{total}</span>
+              <span className="donut-total-lbl">stores</span>
+            </div>
+          </div>
+
+          {/* 3D perspective scene */}
+          <div className="donut-3d-scene">
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart>
+                {/* Depth / extrusion layer — shifted down, darker fill */}
+                <Pie
+                  data={chartData}
+                  cx="50%" cy="54%"
+                  innerRadius={104} outerRadius={152}
+                  dataKey="count" paddingAngle={3} strokeWidth={0}
+                  isAnimationActive={false}
+                >
+                  {chartData.map(e => (
+                    <Cell key={`d-${e.region}`} fill={REGION_DEPTH[e.region] || '#334155'} />
+                  ))}
+                </Pie>
+
+                {/* Surface layer — on top */}
+                <Pie
+                  data={chartData}
+                  cx="50%" cy="48%"
+                  innerRadius={100} outerRadius={148}
+                  dataKey="count" paddingAngle={3} strokeWidth={0}
+                >
+                  {chartData.map(e => (
+                    <Cell key={`s-${e.region}`} fill={REGION_COLORS[e.region] || '#94a3b8'} />
+                  ))}
+                  <Label
+                    content={({ viewBox }) => {
+                      const { cx, cy } = viewBox
+                      return (
+                        <text textAnchor="middle">
+                          <tspan x={cx} y={cy - 6}  className="donut-center-total">{total}</tspan>
+                          <tspan x={cx} y={cy + 20} className="donut-center-label">stores</tspan>
+                        </text>
+                      )
+                    }}
+                    position="center"
+                  />
+                </Pie>
+
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Legend with percentage bars */}
+          <div className="donut-legend">
+            {chartData.map(({ region, count, pct }) => (
+              <div key={region} className="donut-legend-item">
+                <div className="donut-legend-left">
+                  <span className="donut-legend-dot" style={{ background: REGION_COLORS[region] }} />
+                  <span className="donut-legend-region">{region}</span>
+                </div>
+                <div className="donut-legend-bar-wrap">
+                  <div
+                    className="donut-legend-bar"
+                    style={{ width: `${pct}%`, background: REGION_COLORS[region] }}
+                  />
+                </div>
+                <div className="donut-legend-right">
+                  <span className="donut-legend-pct">{pct}%</span>
+                  <span className="donut-legend-count">{count}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="card">
-          <h2>All Stores</h2>
+        {/* ── Store list card ── */}
+        <div className="stores-card">
+          <div className="stores-card-header">
+            <span className="stores-card-title">All Stores</span>
+            <span className="stores-card-badge">{total}</span>
+          </div>
           <div className="store-list">
             {locations.map(loc => (
-              <div key={loc.id} className="store-row" onClick={() => navigate(`/store?id=${loc.id}`)}>
-                <div>
+              <div
+                key={loc.id}
+                className="store-row"
+                onClick={() => navigate(`/store?id=${loc.id}`)}
+              >
+                <div
+                  className="store-row-accent"
+                  style={{ background: REGION_COLORS[loc.region] }}
+                />
+                <div className="store-row-body">
                   <div className="store-name">{loc.name}</div>
                   <div className="store-meta">{loc.city}</div>
                 </div>
-                <span className="region-badge" style={{ background: REGION_COLORS[loc.region] + '22', color: REGION_COLORS[loc.region] }}>
+                <span
+                  className="region-badge"
+                  style={{
+                    background: REGION_COLORS[loc.region] + '20',
+                    color: REGION_COLORS[loc.region],
+                    borderColor: REGION_COLORS[loc.region] + '40',
+                  }}
+                >
                   {loc.region}
                 </span>
               </div>
             ))}
           </div>
         </div>
+
       </div>
     </div>
   )

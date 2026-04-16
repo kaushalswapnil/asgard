@@ -81,11 +81,18 @@
 .pred-list-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 1rem 1.25rem 0.75rem;
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
   border-bottom: 1px solid var(--border);
+}
+
+.pred-page-info {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .pred-list-count {
@@ -105,4 +112,70 @@
 .pred-list {
   display: flex;
   flex-direction: column;
+}
+
+/* ── Pagination ─────────────────────────────────────────────────────────── */
+.pred-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.page-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.page-btn:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--text-muted);
+}
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.page-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.page-num:hover:not(.page-num--active) {
+  background: var(--bg);
+  color: var(--text);
+}
+.page-num--active {
+  background: #111111;
+  color: #ffffff;
+  border-color: #111111;
+}
+[data-theme='dark'] .page-num--active {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #f1f5f9;
 }

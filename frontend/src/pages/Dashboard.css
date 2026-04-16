@@ -1,3 +1,4 @@
+/* ── Page shell ─────────────────────────────────────────────────────────── */
 .page {
   max-width: 1100px;
   margin: 0 auto;
@@ -10,63 +11,268 @@
 .page-header h1 { font-size: 1.6rem; font-weight: 800; color: var(--text); margin: 0 0 0.25rem; }
 .page-header p  { color: var(--text-muted); margin: 0; font-size: 0.9rem; }
 
-.stats-row {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.75rem;
-  flex-wrap: wrap;
-}
-
-.stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1rem 1.5rem;
-  min-width: 120px;
-  flex: 1;
-  border-top: 3px solid var(--primary);
-}
-
-.stat-value { font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1; }
-.stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
-
+/* ── Grid ───────────────────────────────────────────────────────────────── */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 3fr 2fr;
   gap: 1.5rem;
+  align-items: start;
 }
+@media (max-width: 800px) { .dashboard-grid { grid-template-columns: 1fr; } }
 
-@media (max-width: 700px) { .dashboard-grid { grid-template-columns: 1fr; } }
-
+/* ── Shared card base ───────────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 1.25rem 1.5rem;
 }
-
 .card h2 { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0 0 1rem; }
 
-.store-list { display: flex; flex-direction: column; gap: 0.5rem; }
+/* ── Donut card ─────────────────────────────────────────────────────────── */
+.donut-card {
+  background: linear-gradient(145deg, #0f172a 0%, #1e293b 60%, #0f1f3d 100%);
+  border: 1px solid rgba(100, 180, 255, 0.15);
+  border-radius: 20px;
+  padding: 1.5rem 1.75rem 1.25rem;
+  box-shadow:
+    0 4px 6px rgba(0,0,0,0.3),
+    0 20px 60px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Subtle glow in top-left corner */
+.donut-card::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  left: -60px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Card header row */
+.donut-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.25rem;
+}
+.donut-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 0.2px;
+}
+.donut-card-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+/* Total badge top-right */
+.donut-card-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.donut-total-num {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  line-height: 1;
+}
+.donut-total-lbl {
+  font-size: 0.68rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-top: 2px;
+}
+
+/* ── 3D perspective scene ────────────────────────────────────────────────── */
+.donut-3d-scene {
+  transform: perspective(600px) rotateX(28deg) scaleY(0.88);
+  transform-origin: center center;
+  transition: transform 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+  filter: drop-shadow(0 18px 28px rgba(0,0,0,0.55));
+}
+.donut-card:hover .donut-3d-scene {
+  transform: perspective(600px) rotateX(14deg) scaleY(0.94);
+}
+
+/* Center label */
+.donut-center-total {
+  font-size: 2.6rem;
+  font-weight: 800;
+  fill: #f1f5f9;
+}
+.donut-center-label {
+  font-size: 0.8rem;
+  fill: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+/* ── Donut legend ────────────────────────────────────────────────────────── */
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.donut-legend-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 140px;
+}
+.donut-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.donut-legend-region {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.donut-legend-bar-wrap {
+  flex: 1;
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.donut-legend-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  opacity: 0.85;
+}
+
+.donut-legend-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 54px;
+  justify-content: flex-end;
+}
+.donut-legend-pct {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+.donut-legend-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  min-width: 16px;
+  text-align: right;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────────────── */
+.donut-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #1e293b;
+  border: 1px solid rgba(100,180,255,0.2);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.donut-tooltip-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.donut-tooltip-region { font-weight: 700; color: #f1f5f9; }
+.donut-tooltip-count  { color: #64748b; margin-left: 2px; }
+
+/* ── Stores card ─────────────────────────────────────────────────────────── */
+.stores-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+.stores-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+.stores-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.stores-card-badge {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 2px 10px;
+}
+
+/* Store rows */
+.store-list { display: flex; flex-direction: column; }
 
 .store-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.6rem 0.75rem;
-  border-radius: 8px;
+  gap: 10px;
+  padding: 0.7rem 1.25rem;
   cursor: pointer;
   transition: background 0.12s;
+  border-bottom: 1px solid var(--border);
+}
+.store-row:last-child { border-bottom: none; }
+.store-row:hover { background: var(--bg); }
+
+.store-row-accent {
+  width: 3px;
+  height: 32px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0.7;
 }
 
-.store-row:hover { background: var(--border); }
-
-.store-name { font-size: 0.88rem; font-weight: 600; color: var(--text); }
-.store-meta  { font-size: 0.75rem; color: var(--text-muted); }
+.store-row-body { flex: 1; min-width: 0; }
+.store-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.store-meta { font-size: 0.73rem; color: var(--text-muted); margin-top: 1px; }
 
 .region-badge {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 3px 10px;
+  padding: 3px 9px;
   border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
