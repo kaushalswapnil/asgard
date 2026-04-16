@@ -63,54 +63,118 @@ BEGIN
 END $$;
 
 -- -------------------------
--- FULL-DAY LEAVES (~2000 records, ~4 per employee)
+-- FULL-DAY LEAVES (varied realistic patterns, spread up to today)
 -- -------------------------
 DO $$
 DECLARE
-  i INT;
-  leave_types TEXT[] := ARRAY['SICK','CASUAL','EARNED','UNPAID'];
-  base_date DATE := DATE '2023-01-01';
+  i            INT;
+  j            INT;
+  num_leaves   INT;
+  leave_types  TEXT[] := ARRAY['SICK','CASUAL','EARNED','UNPAID'];
+  dominant     TEXT;
+  pref_month   INT;
+  yr           INT;
+  mo           INT;
+  dy           INT;
+  leave_date   DATE;
+  leave_type   TEXT;
+  leave_status TEXT;
+  today        DATE := CURRENT_DATE;
+  -- Year weights: spread across 2023, 2024, 2025
+  year_pick    INT;
 BEGIN
   FOR i IN 1..500 LOOP
-    -- Leave 1
-    INSERT INTO employee_leave (employee_id, leave_date, leave_type, status)
-    VALUES (i, base_date + ((i * 11) % 365) * INTERVAL '1 day',
-            leave_types[1 + ((i)     % 4)], 'APPROVED');
-    -- Leave 2
-    INSERT INTO employee_leave (employee_id, leave_date, leave_type, status)
-    VALUES (i, base_date + ((i * 23) % 365) * INTERVAL '1 day',
-            leave_types[1 + ((i + 1) % 4)], 'APPROVED');
-    -- Leave 3 (2024)
-    INSERT INTO employee_leave (employee_id, leave_date, leave_type, status)
-    VALUES (i, DATE '2024-01-01' + ((i * 17) % 365) * INTERVAL '1 day',
-            leave_types[1 + ((i + 2) % 4)], 'APPROVED');
-    -- Leave 4 (2024, some pending)
-    INSERT INTO employee_leave (employee_id, leave_date, leave_type, status)
-    VALUES (i, DATE '2024-06-01' + ((i * 7)  % 180) * INTERVAL '1 day',
-            leave_types[1 + ((i + 3) % 4)],
-            CASE WHEN i % 10 = 0 THEN 'PENDING' ELSE 'APPROVED' END);
+    num_leaves := 3 + ((i * 3 + 7) % 6);  -- 3 to 8 leaves per employee
+    dominant   := leave_types[1 + ((i * 7) % 4)];
+    pref_month := 1 + ((i * 11) % 12);
+
+    FOR j IN 1..num_leaves LOOP
+      -- Distribute across years: earlier employees lean 2023, middle 2024, later 2025
+      year_pick := (i + j * 3) % 10;
+      IF year_pick < 3 THEN
+        yr := 2023;
+      ELSIF year_pick < 7 THEN
+        yr := 2024;
+      ELSE
+        yr := 2025;
+      END IF;
+
+      -- Month: preferred month ± small variation
+      mo := 1 + ((pref_month + j - 1) % 12);
+
+      -- Day: varied per employee+leave combo
+      dy := LEAST(1 + ((i * j * 13 + j * 17) % 25), 28);
+
+      leave_date := make_date(yr, mo, dy);
+
+      -- Skip future dates beyond today
+      IF leave_date > today THEN
+        leave_date := today - ((i * j) % 30) * INTERVAL '1 day';
+      END IF;
+
+      -- Leave type: 70% dominant, 30% random
+      IF (i * j) % 10 < 7 THEN
+        leave_type := dominant;
+      ELSE
+        leave_type := leave_types[1 + ((i + j * 5) % 4)];
+      END IF;
+
+      -- Status: 5% pending for recent leaves, rest approved
+      IF leave_date >= today - INTERVAL '30 days' AND (i * j) % 8 = 0 THEN
+        leave_status := 'PENDING';
+      ELSE
+        leave_status := 'APPROVED';
+      END IF;
+
+      INSERT INTO employee_leave (employee_id, leave_date, leave_type, status)
+      VALUES (i, leave_date, leave_type, leave_status)
+      ON CONFLICT DO NOTHING;
+    END LOOP;
   END LOOP;
 END $$;
 
 -- -------------------------
--- HALF-DAY LEAVES (~500 records, ~1 per employee)
+-- HALF-DAY LEAVES (varied, 0-3 per employee, up to today)
 -- -------------------------
 DO $$
 DECLARE
-  i INT;
+  i          INT;
+  j          INT;
+  num_half   INT;
   leave_types TEXT[] := ARRAY['SICK','CASUAL','EARNED'];
   halves      TEXT[] := ARRAY['MORNING','AFTERNOON'];
-  base_date DATE := DATE '2023-03-01';
+  pref_month  INT;
+  yr          INT;
+  mo          INT;
+  dy          INT;
+  leave_date  DATE;
+  today       DATE := CURRENT_DATE;
 BEGIN
   FOR i IN 1..500 LOOP
-    INSERT INTO employee_half_day_leave (employee_id, leave_date, half, leave_type, status)
-    VALUES (
-      i,
-      base_date + ((i * 19) % 600) * INTERVAL '1 day',
-      halves[1 + (i % 2)],
-      leave_types[1 + (i % 3)],
-      'APPROVED'
-    );
+    num_half   := (i * 5) % 4;  -- 0 to 3
+    pref_month := 1 + ((i * 7) % 12);
+
+    FOR j IN 1..num_half LOOP
+      yr := 2023 + ((i + j * 3) % 3);
+      mo := 1 + ((pref_month + j) % 12);
+      dy := LEAST(1 + ((i * j * 11) % 25), 28);
+
+      leave_date := make_date(yr, mo, dy);
+
+      IF leave_date > today THEN
+        leave_date := today - ((i + j) % 20) * INTERVAL '1 day';
+      END IF;
+
+      INSERT INTO employee_half_day_leave (employee_id, leave_date, half, leave_type, status)
+      VALUES (
+        i,
+        leave_date,
+        halves[1 + ((i + j) % 2)],
+        leave_types[1 + ((i * j + 3) % 3)],
+        'APPROVED'
+      )
+      ON CONFLICT DO NOTHING;
+    END LOOP;
   END LOOP;
 END $$;
 

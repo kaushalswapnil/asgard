@@ -28,62 +28,62 @@ CREATE INDEX idx_user_employee   ON app_user(employee_id);
 -- ============================================================
 -- Seed: 1 Admin + 1 Store Manager per store (10 managers)
 -- Password for ALL users: "password123"
--- bcrypt hash of "password123" (cost 10):
--- $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2
+-- bcrypt hash of "password123" (cost 10), verified with pgcrypto:
+-- $2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W
 -- ============================================================
 
 -- Admin user (standalone, no employee link)
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('admin', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'ADMIN', NULL, 'System Administrator', 'admin@ebp.co.uk');
 
 -- Store Managers — one per store, linked to first employee at each store
 -- Store 1: London Oxford St  → employee id 1
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.london1', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.london1', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 1, 'Alfie Robinson', 'alfie.robinson1@ebp.co.uk');
 
 -- Store 2: London Canary Wharf → employee id 2
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.london2', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.london2', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 2, 'Vivaan Jones', 'vivaan.jones2@ebp.co.uk');
 
 -- Store 3: Manchester → employee id 3
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.manchester', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.manchester', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 3, 'Aditya Williams', 'aditya.williams3@ebp.co.uk');
 
 -- Store 4: Birmingham → employee id 4
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.birmingham', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.birmingham', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 4, 'Vihaan Taylor', 'vihaan.taylor4@ebp.co.uk');
 
 -- Store 5: Leeds → employee id 5
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.leeds', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.leeds', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 5, 'Arjun Brown', 'arjun.brown5@ebp.co.uk');
 
 -- Store 6: Bristol → employee id 6
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.bristol', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.bristol', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 6, 'Sai Davies', 'sai.davies6@ebp.co.uk');
 
 -- Store 7: Edinburgh → employee id 7
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.edinburgh', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.edinburgh', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 7, 'Reyansh Evans', 'reyansh.evans7@ebp.co.uk');
 
 -- Store 8: Glasgow → employee id 8
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.glasgow', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.glasgow', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 8, 'Ayaan Wilson', 'ayaan.wilson8@ebp.co.uk');
 
 -- Store 9: Cardiff → employee id 9
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.cardiff', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.cardiff', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 9, 'Krishna Thomas', 'krishna.thomas9@ebp.co.uk');
 
 -- Store 10: Belfast → employee id 10
 INSERT INTO app_user (username, password_hash, user_role, employee_id, full_name, email) VALUES
-  ('manager.belfast', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lHi2',
+  ('manager.belfast', '$2a$10$JNvMau/kFPZkwVXXegCbPO6VrwGX8SJnvnzqh7t2OLGNmKSr6pF8W',
    'MANAGER', 10, 'Ishaan Roberts', 'ishaan.roberts10@ebp.co.uk');
