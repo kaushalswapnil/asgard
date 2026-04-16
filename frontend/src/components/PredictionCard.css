@@ -1,65 +1,168 @@
-.pred-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.1rem 1.25rem 0.75rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  transition: box-shadow 0.15s;
+/* ── Row item ────────────────────────────────────────────────────────── */
+.pred-row-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.pred-row-item:last-child { border-bottom: none; }
+.pred-row-item:hover { background: var(--bg); }
+
+/* ── Rank circle ─────────────────────────────────────────────────────── */
+.pred-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 3px;
 }
 
-.pred-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+/* ── Avatar initials ─────────────────────────────────────────────────── */
+.pred-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
 
-.pred-card-header {
+/* ── Body ────────────────────────────────────────────────────────────── */
+.pred-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+/* ── Top row: identity left, meta right ──────────────────────────────── */
+.pred-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.75rem;
+  gap: 1rem;
 }
 
-.pred-name { font-weight: 700; font-size: 0.95rem; color: var(--text); }
-.pred-role { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.pred-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.pred-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pred-role {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+}
 
-.pred-confidence {
-  font-size: 1.5rem;
-  font-weight: 800;
-  text-align: right;
+/* ── Right block: date + badges ──────────────────────────────────────── */
+.pred-right-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.pred-date-range {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.pred-date-from,
+.pred-date-to {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.pred-date-arrow {
+  width: 16px;
+  height: 8px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.pred-badges {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pred-conf-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* ── Signal chips ────────────────────────────────────────────────────── */
+.pred-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pred-signal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.signal-icon {
+  font-size: 0.78rem;
   line-height: 1;
 }
 
-.pred-conf-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 400; }
-
-.pred-card-body { display: flex; flex-direction: column; gap: 0.5rem; }
-
-.pred-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85rem;
-}
-
-.pred-label { color: var(--text-muted); }
-.pred-value { color: var(--text); font-weight: 500; }
-
-.pred-reason {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  background: var(--bg);
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  margin-top: 0.25rem;
-  line-height: 1.4;
-}
-
-.pred-bar-bg {
-  height: 4px;
+/* ── Confidence bar ──────────────────────────────────────────────────── */
+.pred-conf-track {
+  height: 3px;
   background: var(--border);
-  border-radius: 4px;
-  margin-top: 0.85rem;
+  border-radius: 3px;
   overflow: hidden;
 }
-
-.pred-bar-fill {
+.pred-conf-fill {
   height: 100%;
-  border-radius: 4px;
-  transition: width 0.4s ease;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .pred-top         { flex-direction: column; }
+  .pred-right-block { align-items: flex-start; }
+  .pred-signal-chip { white-space: normal; }
 }

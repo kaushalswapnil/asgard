@@ -104,11 +104,13 @@ export default function StorePredictions() {
             <div className="empty-state">No strong leave signals detected for this window.</div>
           ) : (
             <div className="pred-layout">
-              <div className="pred-cards">
-                <h2>Predicted Leaves ({prediction.predictions.length})</h2>
-                <div className="pred-grid">
-                  {prediction.predictions.map(p => (
-                    <PredictionCard key={p.employeeId} prediction={p} />
+              <div className="pred-list-card card">
+                <div className="pred-list-header">
+                  <span>Predicted Leaves <span className="pred-list-count">{prediction.predictions.length}</span></span>
+                </div>
+                <div className="pred-list">
+                  {prediction.predictions.map((p, i) => (
+                    <PredictionCard key={p.employeeId} prediction={p} rank={i + 1} />
                   ))}
                 </div>
               </div>

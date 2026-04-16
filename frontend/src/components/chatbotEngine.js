@@ -169,9 +169,16 @@ export async function managerReply(message, mode = 'business') {
 }
 
 // ─── Admin RAG response engine ────────────────────────────────────────────────
-// Calls the backend /api/chat which automatically applies Milvus RAG context.
-// Falls back to localStorage keyword retrieval when the backend is unreachable.
+// For DB-backed structured queries (holidays, stores, employees, predictions),
+// delegates to managerReply so real data is fetched — not hallucinated by GPT.
+// For everything else, sends to /api/chat which applies Milvus RAG context.
 export async function adminReply(message) {
+  const intent = detectIntent(message)
+  const DB_INTENTS = ['HOLIDAYS', 'STORES', 'EMPLOYEES', 'STORE_PREDICT', 'EMP_PREDICT', 'HELP']
+  if (DB_INTENTS.includes(intent)) {
+    return managerReply(message, 'business')
+  }
+
   try {
     const { data } = await api.post('/chat', { message })
     return data.reply || 'No response received.'
