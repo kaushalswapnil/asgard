@@ -58,7 +58,9 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <BrandIcon size={36} />
+        <div className="brand-icon-3d">
+          <BrandIcon size={36} />
+        </div>
         <span className="navbar-brand-text">EBP AI Assistant</span>
       </div>
 
@@ -76,7 +78,10 @@ export default function Navbar() {
             {dark ? '☀️' : '🌙'}
           </button>
 
-          <AvatarFace />
+          <div className="nav-avatar-orbit-wrap">
+            <div className="nav-avatar-ring" />
+            <AvatarFace />
+          </div>
 
           {open && (
             <div className="profile-dropdown">

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { getLocations, getEmployees, predictEmployee, getEmployeeLeaves, getEmployeeHalfLeaves } from '../api'
 import { useFetch } from '../hooks/useFetch'
 import { Spinner, ErrorMsg, Badge } from '../components/UI'
-import PredictionCard from '../components/PredictionCard'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   AreaChart, Area, RadialBarChart, RadialBar, Legend,
@@ -12,6 +11,100 @@ import './EmployeePredictions.css'
 import { useTheme } from '../context/ThemeContext'
 
 const LEAVE_COLORS = { SICK: '#ef4444', CASUAL: '#f59e0b', EARNED: '#10b981', UNPAID: '#6b7280' }
+
+// ── 3D Employee Prediction Card ───────────────────────
+const CONF_COLOR = (c) => c >= 0.7 ? '#ef4444' : c >= 0.4 ? '#f59e0b' : '#10b981'
+const CONF_LABEL = (c) => c >= 0.7 ? 'High Risk' : c >= 0.4 ? 'Medium Risk' : 'Low Risk'
+
+function empDateRange(predictedDate, confidence) {
+  const buf  = confidence >= 0.7 ? 3 : confidence >= 0.4 ? 5 : 7
+  const base = new Date(predictedDate)
+  const from = new Date(base); from.setDate(from.getDate() - buf)
+  const to   = new Date(base); to.setDate(to.getDate()   + buf)
+  const fmt  = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  return { from: fmt(from), to: fmt(to) }
+}
+
+function EmpPredCard({ prediction }) {
+  const { predictedDate, leaveType, confidence, reason } = prediction
+  const pct     = Math.round(confidence * 100)
+  const color   = CONF_COLOR(confidence)
+  const riskLbl = CONF_LABEL(confidence)
+  const range   = empDateRange(predictedDate, confidence)
+  const signals = reason.split(';').map(s => s.trim()).filter(Boolean)
+
+  // SVG ring geometry
+  const R    = 30
+  const CIRC = 2 * Math.PI * R
+  const dash = CIRC * (1 - pct / 100)
+
+  const signalIcon = s => {
+    const sl = s.toLowerCase()
+    if (sl.includes('bridge') || sl.includes('holiday')) return '🏖️'
+    if (sl.includes('gap') || sl.includes('days ago'))   return '🔁'
+    return '🗓️'
+  }
+
+  return (
+    <div className="emp-pred-card">
+      <div className="emp-pred-glow" style={{ background: `${color}25` }} />
+
+      {/* Header row: badges + ring */}
+      <div className="emp-pred-top">
+        <div className="emp-pred-badges">
+          <span className="emp-pred-type-pill"
+            style={{ background: (LEAVE_COLORS[leaveType] || '#6b7280') + '28',
+                     color: LEAVE_COLORS[leaveType] || '#6b7280',
+                     borderColor: (LEAVE_COLORS[leaveType] || '#6b7280') + '55' }}>
+            {leaveType}
+          </span>
+          <span className="emp-pred-risk-pill"
+            style={{ background: color + '20', color, borderColor: color + '45' }}>
+            {riskLbl}
+          </span>
+        </div>
+
+        <svg className="emp-conf-ring" width="76" height="76" viewBox="0 0 76 76">
+          <circle cx="38" cy="38" r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5" />
+          <circle cx="38" cy="38" r={R} fill="none"
+            stroke={color} strokeWidth="5"
+            strokeDasharray={CIRC} strokeDashoffset={dash}
+            strokeLinecap="round"
+            transform="rotate(-90 38 38)"
+            style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.34,1.2,0.64,1)' }}
+          />
+          <text x="38" y="34" textAnchor="middle" fontSize="13" fontWeight="800" fill={color}>{pct}%</text>
+          <text x="38" y="47" textAnchor="middle" fontSize="7.5" fill="#475569" letterSpacing="0.8">CONF</text>
+        </svg>
+      </div>
+
+      {/* Date window */}
+      <div className="emp-pred-window">
+        <div className="emp-pred-window-label">Predicted window</div>
+        <div className="emp-pred-window-row">
+          <span className="emp-pred-date">{range.from}</span>
+          <svg width="20" height="10" viewBox="0 0 20 10" fill="none" className="emp-pred-arrow">
+            <path d="M0 5h18M14 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="emp-pred-date">{range.to}</span>
+        </div>
+      </div>
+
+      {/* Confidence fill bar */}
+      <div className="emp-pred-bar-bg">
+        <div className="emp-pred-bar-fill"
+          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}70, ${color})` }} />
+      </div>
+
+      {/* Signal chips */}
+      <div className="emp-pred-signals">
+        {signals.map((s, i) => (
+          <span key={i} className="emp-pred-signal">{signalIcon(s)} {s}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 // ── Multi-select dropdown component ──────────────────────
 function MultiSelect({ options, selected, onChange, placeholder, disabled }) {
@@ -220,6 +313,7 @@ export default function EmployeePredictions() {
   const [days, setDays]                 = useState(60)
   const [results, setResults]           = useState([])   // [{ employee, prediction, leaveHistory, halfLeaves }]
   const [loading, setLoading]           = useState(false)
+  const [progress, setProgress]         = useState({ done: 0, total: 0 })
   const [error, setError]               = useState(null)
   const [activeEmpId, setActiveEmpId]   = useState(null)
 
@@ -247,29 +341,40 @@ export default function EmployeePredictions() {
     setLoading(true)
     setError(null)
     setResults([])
+    setProgress({ done: 0, total: employeeIds.length })
+
+    const BATCH = 8   // max concurrent employees at once
+    const all   = []
     try {
-      const all = await Promise.all(
-        employeeIds.map(id =>
-          Promise.all([
-            predictEmployee(id, 30),
-            predictEmployee(id, 60),
-            getEmployeeLeaves(id),
-            getEmployeeHalfLeaves(id)
-          ]).then(([pred30Res, pred60Res, leavesRes, halfRes]) => ({
-            employee: employees.find(e => e.id === id),
-            prediction30: pred30Res.data,
-            prediction60: pred60Res.data,
-            leaveHistory: leavesRes.data,
-            halfLeaves: halfRes.data
-          }))
+      for (let i = 0; i < employeeIds.length; i += BATCH) {
+        const batch = employeeIds.slice(i, i + BATCH)
+        const batchResults = await Promise.all(
+          batch.map(id =>
+            Promise.all([
+              predictEmployee(id, 30),
+              predictEmployee(id, 60),
+              getEmployeeLeaves(id),
+              getEmployeeHalfLeaves(id)
+            ]).then(([pred30Res, pred60Res, leavesRes, halfRes]) => ({
+              employee: employees.find(e => e.id === id),
+              prediction30: pred30Res.data,
+              prediction60: pred60Res.data,
+              leaveHistory: leavesRes.data,
+              halfLeaves: halfRes.data
+            }))
+          )
         )
-      )
-      setResults(all)
-      setActiveEmpId(all[0]?.employee?.id ?? null)
+        all.push(...batchResults)
+        setProgress({ done: Math.min(i + BATCH, employeeIds.length), total: employeeIds.length })
+        // stream results in as batches complete
+        setResults([...all])
+        if (i === 0) setActiveEmpId(all[0]?.employee?.id ?? null)
+      }
     } catch (e) {
       setError(e.message)
     } finally {
       setLoading(false)
+      setProgress({ done: 0, total: 0 })
     }
   }
 
@@ -356,7 +461,21 @@ export default function EmployeePredictions() {
       </div>
 
       {error && <ErrorMsg message={error} />}
-      {loading && <Spinner />}
+      {loading && progress.total > 0 && (
+        <div className="predict-progress">
+          <div className="predict-progress-header">
+            <span>Predicting employees…</span>
+            <span className="predict-progress-count">{progress.done} / {progress.total}</span>
+          </div>
+          <div className="predict-progress-track">
+            <div
+              className="predict-progress-fill"
+              style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+      {loading && progress.total === 0 && <Spinner />}
 
       {!loading && results.length === 0 && !error && (
         <div className="empty-state">👆 Select stores and employees, then click Predict</div>
@@ -459,7 +578,7 @@ export default function EmployeePredictions() {
                 <div className="emp-unified-label">Prediction</div>
                 {activeResult.prediction30?.length === 0 && activeResult.prediction60?.length === 0
                   ? <div className="empty-state" style={{ padding: '0.75rem' }}>No strong leave signal detected.</div>
-                  : <div className="emp-pred-grid">{(activeResult.prediction60 || []).map(p => <PredictionCard key={p.employeeId + p.predictedDate} prediction={p} />)}</div>
+                  : <div className="emp-pred-cards">{(activeResult.prediction60 || []).map(p => <EmpPredCard key={p.employeeId + p.predictedDate} prediction={p} />)}</div>
                 }
               </div>
 

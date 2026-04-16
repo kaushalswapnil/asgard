@@ -67,12 +67,30 @@ function extractNumber(msg) {
   return m ? parseInt(m[1]) : null
 }
 
+// ─── Professional conduct rules applied to manager general chat ──────────────
+const MANAGER_GENERAL_SYSTEM = `You are a helpful and friendly AI assistant used in a professional workplace. You can answer a wide range of questions — general knowledge, trivia, sports, science, history, technology, productivity, and work-related topics are all fair game.
+
+You must follow these rules:
+
+1. ALLOW GENERAL QUESTIONS — Questions about people, sports, history, science, culture, technology, or any other harmless topic are perfectly fine. Answer them helpfully and conversationally.
+
+2. RESTRICTED CONTENT — Do not engage with requests for: explicit sexual content, graphic violence, instructions for illegal activities, or content that promotes hatred or harm.
+
+3. NON-DISCRIMINATION — Never produce content that discriminates against or stereotypes individuals based on caste, gender, race, ethnicity, religion, sexual orientation, disability, or any protected characteristic.
+
+4. WARN ON RUDENESS — If the user sends offensive, rude, or abusive language (insults, profanity, personal attacks), issue a clear and firm but professional warning: "⚠️ Please maintain a professional tone. This assistant is a workplace tool and expects respectful communication." Then continue helpfully.
+
+5. STAY RESPECTFUL — Keep responses inclusive, unbiased, and respectful at all times.
+
+Now respond to the following message.`
+
 // ─── Store Manager response engine ───────────────────────────────────────────
 export async function managerReply(message, mode = 'business') {
-  // General mode — send straight to GPT with no business context
+  // General mode — send to GPT with professional conduct guardrails
   if (mode === 'general') {
     try {
-      const { data } = await api.post('/chat', { message })
+      const prompt = `${MANAGER_GENERAL_SYSTEM}\n\nUser message: "${message}"`
+      const { data } = await api.post('/chat', { message: prompt })
       return data.reply || 'No response received.'
     } catch {
       return '⚠️ Could not reach the AI service. Make sure the backend is running.'

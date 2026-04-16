@@ -4,11 +4,35 @@ import { getLocations, predictStore, getHolidays, getEmployees } from '../api'
 import { useFetch } from '../hooks/useFetch'
 import { Spinner, ErrorMsg } from '../components/UI'
 import PredictionCard from '../components/PredictionCard'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer, Label } from 'recharts'
 import './StorePredictions.css'
 
 const DAY_OPTIONS = [14, 30, 60, 90, 180, 270, 360]
 const PAGE_SIZE   = 10
+
+// Confidence-tier palette
+const CONF_SURFACE = (pct) => pct >= 70 ? '#ef4444' : pct >= 40 ? '#f59e0b' : '#10b981'
+const CONF_DEPTH   = (pct) => pct >= 70 ? '#7f1d1d' : pct >= 40 ? '#78350f' : '#064e3b'
+const CONF_LABEL   = (pct) => pct >= 70 ? 'High' : pct >= 40 ? 'Med' : 'Low'
+
+// Custom 3D-donut tooltip
+function ConfTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null
+  const { name, pct, firstName } = payload[0].payload
+  const color = CONF_SURFACE(pct)
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 7,
+      background: '#1e293b', border: '1px solid rgba(100,180,255,0.2)',
+      borderRadius: 8, padding: '7px 12px', fontSize: '0.78rem',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+    }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }} />
+      <strong style={{ color: '#f1f5f9' }}>{firstName}</strong>
+      <span style={{ color: '#64748b', marginLeft: 2 }}>{pct}% · {CONF_LABEL(pct)} risk</span>
+    </div>
+  )
+}
 
 function buildTopNOptions(count) {
   if (!count) return []
@@ -77,11 +101,15 @@ export default function StorePredictions() {
   const totalPages = Math.ceil(allPreds.length / PAGE_SIZE)
   const pageSlice  = allPreds.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  // Build a simple confidence trend from predictions
-  const chartData = prediction?.predictions?.map((p, i) => ({
-    name: p.employeeName.split(' ')[0],
-    confidence: Math.round(p.confidence * 100)
-  })) || []
+  // Build per-employee confidence slices for 3D donut
+  const chartData = (prediction?.predictions || []).map(p => {
+    const pct       = Math.round(p.confidence * 100)
+    const firstName = p.employeeName.split(' ')[0]
+    return { name: p.employeeName, firstName, pct, value: pct }
+  })
+  const avgConf = chartData.length
+    ? Math.round(chartData.reduce((s, d) => s + d.pct, 0) / chartData.length)
+    : 0
 
   return (
     <div className="page">
@@ -201,17 +229,70 @@ export default function StorePredictions() {
                 )}
               </div>
 
-              <div className="pred-chart card">
-                <h2>Confidence by Employee</h2>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={chartData} margin={{ top: 8, right: 16, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
-                    <Tooltip formatter={v => `${v}%`} />
-                    <Line type="monotone" dataKey="confidence" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+              {/* ── 3-D confidence donut ── */}
+              <div className="conf-donut-card">
+                <div className="conf-donut-header">
+                  <div>
+                    <div className="conf-donut-title">Confidence</div>
+                    <div className="conf-donut-sub">by employee</div>
+                  </div>
+                  <div className="conf-donut-avg">
+                    <span className="conf-avg-num" style={{ color: CONF_SURFACE(avgConf) }}>{avgConf}%</span>
+                    <span className="conf-avg-lbl">avg risk</span>
+                  </div>
+                </div>
+
+                <div className="conf-3d-scene">
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      {/* depth layer */}
+                      <Pie data={chartData} cx="50%" cy="54%"
+                        innerRadius={68} outerRadius={98}
+                        dataKey="value" paddingAngle={3} strokeWidth={0}
+                        isAnimationActive={false}>
+                        {chartData.map(d => (
+                          <Cell key={`d-${d.name}`} fill={CONF_DEPTH(d.pct)} />
+                        ))}
+                      </Pie>
+                      {/* surface layer */}
+                      <Pie data={chartData} cx="50%" cy="48%"
+                        innerRadius={64} outerRadius={94}
+                        dataKey="value" paddingAngle={3} strokeWidth={0}>
+                        {chartData.map(d => (
+                          <Cell key={`s-${d.name}`} fill={CONF_SURFACE(d.pct)} />
+                        ))}
+                        <Label
+                          content={({ viewBox }) => {
+                            const { cx, cy } = viewBox
+                            return (
+                              <text textAnchor="middle">
+                                <tspan x={cx} y={cy - 4}  className="conf-center-num"  style={{ fill: CONF_SURFACE(avgConf) }}>{avgConf}%</tspan>
+                                <tspan x={cx} y={cy + 14} className="conf-center-lbl">avg</tspan>
+                              </text>
+                            )
+                          }}
+                          position="center"
+                        />
+                      </Pie>
+                      <ReTooltip content={<ConfTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* legend */}
+                <div className="conf-legend">
+                  {chartData.map(d => (
+                    <div key={d.name} className="conf-legend-row">
+                      <span className="conf-legend-dot" style={{ background: CONF_SURFACE(d.pct) }} />
+                      <span className="conf-legend-name">{d.firstName}</span>
+                      <div className="conf-legend-bar-wrap">
+                        <div className="conf-legend-bar"
+                          style={{ width: `${d.pct}%`, background: CONF_SURFACE(d.pct) }} />
+                      </div>
+                      <span className="conf-legend-pct" style={{ color: CONF_SURFACE(d.pct) }}>{d.pct}%</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
