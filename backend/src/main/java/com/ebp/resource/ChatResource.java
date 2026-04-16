@@ -1,6 +1,7 @@
 package com.ebp.resource;
 
 import com.ebp.service.OpenAIService;
+import com.ebp.service.RagService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -10,8 +11,8 @@ import jakarta.ws.rs.core.MediaType;
 @Consumes(MediaType.APPLICATION_JSON)
 public class ChatResource {
 
-    @Inject
-    OpenAIService openAIService;
+    @Inject OpenAIService openAIService;
+    @Inject RagService    ragService;
 
     public static class ChatRequest {
         public String message;
@@ -39,7 +40,8 @@ public class ChatResource {
             );
         }
 
-        String reply = openAIService.ask(req.message);
+        String augmented = ragService.augmentWithContext(req.message);
+        String reply = openAIService.ask(augmented);
         return new ChatResponse(reply, true);
     }
 }

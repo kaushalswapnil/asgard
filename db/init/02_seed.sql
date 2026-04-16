@@ -80,7 +80,7 @@ DECLARE
   leave_type   TEXT;
   leave_status TEXT;
   today        DATE := CURRENT_DATE;
-  -- Year weights: spread across 2023, 2024, 2025
+  -- Year weights: spread across 2023, 2024, 2025, 2026
   year_pick    INT;
 BEGIN
   FOR i IN 1..500 LOOP
@@ -89,14 +89,16 @@ BEGIN
     pref_month := 1 + ((i * 11) % 12);
 
     FOR j IN 1..num_leaves LOOP
-      -- Distribute across years: earlier employees lean 2023, middle 2024, later 2025
-      year_pick := (i + j * 3) % 10;
+      -- Distribute across years: 2023, 2024, 2025, 2026
+      year_pick := (i + j * 3) % 12;
       IF year_pick < 3 THEN
         yr := 2023;
-      ELSIF year_pick < 7 THEN
+      ELSIF year_pick < 6 THEN
         yr := 2024;
-      ELSE
+      ELSIF year_pick < 9 THEN
         yr := 2025;
+      ELSE
+        yr := 2026;
       END IF;
 
       -- Month: preferred month ± small variation
@@ -155,7 +157,7 @@ BEGIN
     pref_month := 1 + ((i * 7) % 12);
 
     FOR j IN 1..num_half LOOP
-      yr := 2023 + ((i + j * 3) % 3);
+      yr := 2023 + ((i + j) % 4);
       mo := 1 + ((pref_month + j) % 12);
       dy := LEAST(1 + ((i * j * 11) % 25), 28);
 
@@ -198,7 +200,11 @@ DECLARE
     -- 2025
     DATE '2025-01-01', DATE '2025-04-18', DATE '2025-04-21',
     DATE '2025-05-05', DATE '2025-05-26', DATE '2025-08-25',
-    DATE '2025-12-25', DATE '2025-12-26'
+    DATE '2025-12-25', DATE '2025-12-26',
+    -- 2026
+    DATE '2026-01-01', DATE '2026-04-03', DATE '2026-04-06',
+    DATE '2026-05-04', DATE '2026-05-25', DATE '2026-08-31',
+    DATE '2026-12-25', DATE '2026-12-28'
   ];
   eng_names TEXT[] := ARRAY[
     -- 2023
@@ -212,7 +218,11 @@ DECLARE
     -- 2025
     'New Year''s Day','Good Friday','Easter Monday',
     'Early May Bank Holiday','Spring Bank Holiday','Summer Bank Holiday',
-    'Christmas Day','Boxing Day'
+    'Christmas Day','Boxing Day',
+    -- 2026
+    'New Year''s Day','Good Friday','Easter Monday',
+    'Early May Bank Holiday','Spring Bank Holiday','Summer Bank Holiday',
+    'Christmas Day','Boxing Day (substitute)'
   ];
   h INT;
 BEGIN
@@ -240,7 +250,11 @@ DECLARE
     -- 2025
     DATE '2025-01-01', DATE '2025-01-02', DATE '2025-04-18',
     DATE '2025-05-05', DATE '2025-05-26', DATE '2025-08-04',
-    DATE '2025-12-01', DATE '2025-12-25', DATE '2025-12-26'
+    DATE '2025-12-01', DATE '2025-12-25', DATE '2025-12-26',
+    -- 2026
+    DATE '2026-01-01', DATE '2026-01-02', DATE '2026-04-03',
+    DATE '2026-05-04', DATE '2026-05-25', DATE '2026-08-03',
+    DATE '2026-11-30', DATE '2026-12-25', DATE '2026-12-28'
   ];
   scot_names TEXT[] := ARRAY[
     -- 2023
@@ -254,7 +268,11 @@ DECLARE
     -- 2025
     'New Year''s Day','2nd January','Good Friday',
     'Early May Bank Holiday','Spring Bank Holiday','Summer Bank Holiday',
-    'St Andrew''s Day','Christmas Day','Boxing Day'
+    'St Andrew''s Day','Christmas Day','Boxing Day',
+    -- 2026
+    'New Year''s Day','2nd January','Good Friday',
+    'Early May Bank Holiday','Spring Bank Holiday','Summer Bank Holiday',
+    'St Andrew''s Day','Christmas Day','Boxing Day (substitute)'
   ];
   h INT;
 BEGIN
@@ -281,7 +299,11 @@ DECLARE
     -- 2025
     DATE '2025-01-01', DATE '2025-03-17', DATE '2025-04-18',
     DATE '2025-04-21', DATE '2025-05-05', DATE '2025-05-26',
-    DATE '2025-07-14', DATE '2025-08-25', DATE '2025-12-25', DATE '2025-12-26'
+    DATE '2025-07-14', DATE '2025-08-25', DATE '2025-12-25', DATE '2025-12-26',
+    -- 2026
+    DATE '2026-01-01', DATE '2026-03-17', DATE '2026-04-03',
+    DATE '2026-04-06', DATE '2026-05-04', DATE '2026-05-25',
+    DATE '2026-07-13', DATE '2026-08-31', DATE '2026-12-25', DATE '2026-12-28'
   ];
   ni_names TEXT[] := ARRAY[
     -- 2023
@@ -295,7 +317,11 @@ DECLARE
     -- 2025
     'New Year''s Day','St Patrick''s Day','Good Friday',
     'Easter Monday','Early May Bank Holiday','Spring Bank Holiday',
-    'Battle of the Boyne','Summer Bank Holiday','Christmas Day','Boxing Day'
+    'Battle of the Boyne','Summer Bank Holiday','Christmas Day','Boxing Day',
+    -- 2026
+    'New Year''s Day','St Patrick''s Day','Good Friday',
+    'Easter Monday','Early May Bank Holiday','Spring Bank Holiday',
+    'Battle of the Boyne (substitute)','Summer Bank Holiday','Christmas Day','Boxing Day (substitute)'
   ];
   h INT;
 BEGIN
@@ -333,3 +359,27 @@ INSERT INTO store_secondary_schedule (location_id, schedule_date, day_of_week, s
 INSERT INTO store_secondary_schedule (location_id, schedule_date, day_of_week, start_time, end_time, notes)
 SELECT id, '2024-11-29', NULL, '07:00', '23:00', 'Black Friday extended'
 FROM location;
+
+-- -------------------------
+-- 2025 SPECIAL SCHEDULES
+-- -------------------------
+
+-- Black Friday 2025 extended hours (all stores)
+INSERT INTO store_secondary_schedule (location_id, schedule_date, day_of_week, start_time, end_time, notes)
+SELECT id, '2025-11-28', NULL, '07:00', '23:00', 'Black Friday extended'
+FROM location;
+
+-- Christmas Eve 2025 extended hours (all stores)
+INSERT INTO store_secondary_schedule (location_id, schedule_date, day_of_week, start_time, end_time, notes)
+SELECT id, '2025-12-24', NULL, '08:00', '22:00', 'Christmas Eve extended'
+FROM location;
+
+-- Boxing Day sale 2025 extended hours (England & Wales stores only)
+INSERT INTO store_secondary_schedule (location_id, schedule_date, day_of_week, start_time, end_time, notes) VALUES
+  (1, '2025-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (2, '2025-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (3, '2025-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (4, '2025-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (5, '2025-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (6, '2025-12-26', NULL, '09:00', '21:00', 'Boxing Day sale'),
+  (9, '2025-12-26', NULL, '09:00', '21:00', 'Boxing Day sale');

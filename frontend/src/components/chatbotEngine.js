@@ -55,7 +55,7 @@ function detectIntent(msg) {
   const m = msg.toLowerCase()
   if (/\b(predict|upcoming|leave|off|absent)\b/.test(m) && /\bstore\b/.test(m))  return 'STORE_PREDICT'
   if (/\b(predict|upcoming|leave|off|absent)\b/.test(m) && /\bemp|employee\b/.test(m)) return 'EMP_PREDICT'
-  if (/\b(holiday|bank holiday|public holiday)\b/.test(m))  return 'HOLIDAYS'
+  if (/\b(holidays?|bank holidays?|public holidays?)\b/.test(m))  return 'HOLIDAYS'
   if (/\b(store|location|branch)\b/.test(m))                return 'STORES'
   if (/\b(employee|staff|worker|team)\b/.test(m))           return 'EMPLOYEES'
   if (/\b(help|what can|how|commands)\b/.test(m))           return 'HELP'
@@ -169,11 +169,19 @@ export async function managerReply(message, mode = 'business') {
 }
 
 // ─── Admin RAG response engine ────────────────────────────────────────────────
-export function adminReply(message) {
-  const context = retrieveContext(message)
-  if (!context.length) {
-    return `No relevant context found in the trained data for: "${message}".\n\nTry training more data using the panel above, then ask again.`
+// Calls the backend /api/chat which automatically applies Milvus RAG context.
+// Falls back to localStorage keyword retrieval when the backend is unreachable.
+export async function adminReply(message) {
+  try {
+    const { data } = await api.post('/chat', { message })
+    return data.reply || 'No response received.'
+  } catch {
+    // Backend unreachable — fall back to localStorage corpus
+    const context = retrieveContext(message)
+    if (!context.length) {
+      return `No relevant context found for: "${message}".\n\nMake sure the backend is running and try training some employees via the RAG Training panel.`
+    }
+    const contextText = context.map(c => `[${c.title}]\n${c.content}`).join('\n\n---\n\n')
+    return `Based on local trained data (${context.length} chunk${context.length > 1 ? 's' : ''}):\n\n${contextText}`
   }
-  const contextText = context.map(c => `[${c.title}]\n${c.content}`).join('\n\n---\n\n')
-  return `📚 Based on trained data (${context.length} relevant chunk${context.length > 1 ? 's' : ''} retrieved):\n\n${contextText}\n\n---\n💡 Tip: The answer above is retrieved directly from your trained corpus. Add more specific data chunks for better answers.`
 }

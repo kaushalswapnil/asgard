@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useChatbot } from './ChatbotContext'
 import { useAuth } from '../context/AuthContext'
-import { managerReply, adminReply, saveRagChunk, getRagCorpus, clearRagCorpus } from './chatbotEngine'
+import { managerReply, adminReply } from './chatbotEngine'
 import AutobotIcon from './AutobotIcon'
 import './Chatbot.css'
 
@@ -43,10 +43,13 @@ export default function Chatbot() {
   const [closing, setClosing]           = useState(false)
   const [showSidebar, setShowSidebar]   = useState(false)
   const [mode, setMode]                 = useState('business')
-  const [ragTitle, setRagTitle]         = useState('')
-  const [ragContent, setRagContent]     = useState('')
-  const [ragChunks, setRagChunks]       = useState(getRagCorpus())
   const [ragTab, setRagTab]             = useState('chat')
+  const [trainMode, setTrainMode]       = useState('single')
+  const [trainEmpId, setTrainEmpId]     = useState('')
+  const [trainBatch, setTrainBatch]     = useState('')
+  const [trainLoading, setTrainLoading] = useState(false)
+  const [trainStats, setTrainStats]     = useState(null)
+  const [trainResult, setTrainResult]   = useState(null)
   const bottomRef = useRef(null)
 
   const isAdmin   = user?.userRole === 'ADMIN'
@@ -126,6 +129,10 @@ export default function Chatbot() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, thinking])
 
+  useEffect(() => {
+    if (ragTab === 'train') fetchTrainStats()
+  }, [ragTab])
+
   // ── Actions ──────────────────────────────────────────────
   const closePanel = () => {
     setClosing(true)
@@ -157,7 +164,7 @@ export default function Chatbot() {
     updateActiveMessages(withUser)
     setThinking(true)
     try {
-      const reply = chatView === 'manager' ? await managerReply(text, mode) : adminReply(text)
+      const reply = chatView === 'manager' ? await managerReply(text, mode) : await adminReply(text)
       const botMsg = { id: Date.now() + 1, from: 'bot', text: reply, ts: now() }
       updateActiveMessages([...withUser, botMsg])
     } finally {
@@ -167,18 +174,62 @@ export default function Chatbot() {
 
   const handleKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }
 
-  const trainChunk = () => {
-    if (!ragTitle.trim() || !ragContent.trim()) return
-    const chunk = saveRagChunk(ragTitle.trim(), ragContent.trim())
-    setRagChunks(getRagCorpus())
-    setRagTitle(''); setRagContent('')
-    updateActiveMessages([...messages, { id: Date.now(), from: 'bot', text: `✅ Chunk "${chunk.title}" added. Total: ${getRagCorpus().length}`, ts: now() }])
-    setRagTab('chat')
+  const API = 'http://localhost:8080'
+
+  const fetchTrainStats = async () => {
+    try {
+      const res = await fetch(`${API}/api/rag/stats`)
+      setTrainStats(await res.json())
+    } catch {}
   }
 
-  const clearCorpus = () => {
-    clearRagCorpus(); setRagChunks([])
-    updateActiveMessages([...messages, { id: Date.now(), from: 'bot', text: '🗑️ RAG corpus cleared.', ts: now() }])
+  const handleTrainSingle = async () => {
+    const id = parseInt(trainEmpId)
+    if (!id) return
+    setTrainLoading(true); setTrainResult(null)
+    try {
+      await fetch(`${API}/api/rag/train`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId: id })
+      })
+      setTrainResult({ ok: true, msg: `Employee ${id} trained successfully` })
+      setTrainEmpId('')
+      await fetchTrainStats()
+    } catch {
+      setTrainResult({ ok: false, msg: 'Training failed — check backend connection' })
+    } finally { setTrainLoading(false) }
+  }
+
+  const handleTrainBatch = async () => {
+    const ids = trainBatch.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+    if (!ids.length) return
+    setTrainLoading(true); setTrainResult(null)
+    try {
+      const res = await fetch(`${API}/api/rag/train/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeIds: ids })
+      })
+      const data = await res.json()
+      setTrainResult({ ok: true, msg: `${data.trained_count} employees trained successfully` })
+      setTrainBatch('')
+      await fetchTrainStats()
+    } catch {
+      setTrainResult({ ok: false, msg: 'Batch training failed — check backend connection' })
+    } finally { setTrainLoading(false) }
+  }
+
+  const handleClearAll = async () => {
+    if (!window.confirm('Delete all trained embeddings from Milvus?')) return
+    setTrainLoading(true); setTrainResult(null)
+    try {
+      await fetch(`${API}/api/rag/clear`, { method: 'DELETE' })
+      setTrainResult({ ok: true, msg: 'All embeddings cleared' })
+      setTrainStats(prev => prev ? { ...prev, total_embeddings: 0 } : null)
+    } catch {
+      setTrainResult({ ok: false, msg: 'Clear failed' })
+    } finally { setTrainLoading(false) }
   }
 
   const formatText = (text) =>
@@ -293,7 +344,7 @@ export default function Chatbot() {
             <div className="chatbot-tabs">
               <button className={ragTab === 'chat'  ? 'active' : ''} onClick={() => setRagTab('chat')}>💬 Chat</button>
               <button className={ragTab === 'train' ? 'active' : ''} onClick={() => setRagTab('train')}>
-                🧠 Train Data {ragChunks.length > 0 && <span className="chunk-badge">{ragChunks.length}</span>}
+                🧠 Train Data {trainStats?.total_embeddings > 0 && <span className="chunk-badge">{trainStats.total_embeddings}</span>}
               </button>
             </div>
           )}
@@ -301,24 +352,74 @@ export default function Chatbot() {
           {/* Train panel */}
           {isAdmin && chatView === 'admin' && ragTab === 'train' && (
             <div className="chatbot-train-panel">
-              <div className="train-section-title">Add Knowledge Chunk</div>
-              <input className="train-input" placeholder="Chunk title" value={ragTitle} onChange={e => setRagTitle(e.target.value)} />
-              <textarea className="train-textarea" placeholder="Paste content here…" value={ragContent} onChange={e => setRagContent(e.target.value)} rows={5} />
-              <button className="train-btn" onClick={trainChunk} disabled={!ragTitle.trim() || !ragContent.trim()}>➕ Add to Corpus</button>
-              {ragChunks.length > 0 && (
-                <div className="train-corpus">
-                  <div className="train-corpus-header">
-                    <span>Trained Chunks ({ragChunks.length})</span>
-                    <button className="train-clear-btn" onClick={clearCorpus}>🗑️ Clear All</button>
-                  </div>
-                  {ragChunks.map(c => (
-                    <div key={c.id} className="train-chunk">
-                      <div className="train-chunk-title">{c.title}</div>
-                      <div className="train-chunk-preview">{c.content.slice(0, 80)}…</div>
-                    </div>
-                  ))}
+
+              {/* Stats bar */}
+              <div className="train-stats-bar">
+                <span className="train-stats-count">
+                  <strong>{trainStats?.total_embeddings ?? '—'}</strong> embeddings
+                </span>
+                <span className={`train-stats-status ${trainStats?.connected ? 'train-stats-status--ok' : 'train-stats-status--err'}`}>
+                  {trainStats?.connected ? '● Milvus connected' : '● Milvus disconnected'}
+                </span>
+              </div>
+
+              {/* Result message */}
+              {trainResult && (
+                <div className={`train-result ${trainResult.ok ? 'train-result--ok' : 'train-result--err'}`}>
+                  {trainResult.msg}
                 </div>
               )}
+
+              {/* Single / Batch toggle */}
+              <div className="train-mode-tabs">
+                <button className={trainMode === 'single' ? 'active' : ''} onClick={() => setTrainMode('single')}>Single</button>
+                <button className={trainMode === 'batch'  ? 'active' : ''} onClick={() => setTrainMode('batch')}>Batch</button>
+              </div>
+
+              {trainMode === 'single' ? (
+                <>
+                  <div className="train-section-title">Train by Employee ID</div>
+                  <div className="train-row">
+                    <input
+                      className="train-input"
+                      type="number"
+                      placeholder="Employee ID  e.g. 1"
+                      value={trainEmpId}
+                      onChange={e => setTrainEmpId(e.target.value)}
+                      disabled={trainLoading}
+                    />
+                    <button className="train-btn train-btn--inline" onClick={handleTrainSingle} disabled={trainLoading || !trainEmpId}>
+                      {trainLoading ? '…' : 'Train'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="train-section-title">Batch — comma-separated IDs</div>
+                  <textarea
+                    className="train-textarea"
+                    placeholder="1,2,3,4,5,10,15,20,25,30"
+                    value={trainBatch}
+                    onChange={e => setTrainBatch(e.target.value)}
+                    disabled={trainLoading}
+                    rows={3}
+                  />
+                  {trainBatch.trim() && (
+                    <div className="train-batch-count">
+                      {trainBatch.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)).length} employees selected
+                    </div>
+                  )}
+                  <button className="train-btn" onClick={handleTrainBatch} disabled={trainLoading || !trainBatch.trim()}>
+                    {trainLoading ? '…' : 'Train All'}
+                  </button>
+                </>
+              )}
+
+              <div className="train-footer">
+                <button className="train-refresh-btn" onClick={fetchTrainStats} disabled={trainLoading}>↻ Refresh</button>
+                <button className="train-clear-btn" onClick={handleClearAll} disabled={trainLoading}>🗑️ Clear All</button>
+              </div>
+
             </div>
           )}
 
