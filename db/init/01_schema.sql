@@ -12,13 +12,14 @@ CREATE TABLE location (
 
 -- Employees
 CREATE TABLE employee (
-    id              SERIAL PRIMARY KEY,
-    name            VARCHAR(150) NOT NULL,
-    email           VARCHAR(150) UNIQUE NOT NULL,
-    role            VARCHAR(100) NOT NULL,
-    location_id     INT NOT NULL REFERENCES location(id),
-    hire_date       DATE NOT NULL,
-    is_active       BOOLEAN NOT NULL DEFAULT TRUE
+    id                      SERIAL PRIMARY KEY,
+    name                    VARCHAR(150) NOT NULL,
+    email                   VARCHAR(150) UNIQUE NOT NULL,
+    role                    VARCHAR(100) NOT NULL,
+    location_id             INT NOT NULL REFERENCES location(id),
+    secondary_location_id   INT REFERENCES location(id),
+    hire_date               DATE NOT NULL,
+    is_active               BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- Full-day leaves

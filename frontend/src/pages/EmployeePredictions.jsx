@@ -16,22 +16,31 @@ const LEAVE_COLORS = { SICK: '#ef4444', CASUAL: '#f59e0b', EARNED: '#10b981', UN
 const CONF_COLOR = (c) => c >= 0.7 ? '#ef4444' : c >= 0.4 ? '#f59e0b' : '#10b981'
 const CONF_LABEL = (c) => c >= 0.7 ? 'High Risk' : c >= 0.4 ? 'Medium Risk' : 'Low Risk'
 
-function empDateRange(predictedDate, confidence) {
-  const buf  = confidence >= 0.7 ? 3 : confidence >= 0.4 ? 5 : 7
-  const base = new Date(predictedDate)
-  const from = new Date(base); from.setDate(from.getDate() - buf)
-  const to   = new Date(base); to.setDate(to.getDate()   + buf)
-  const fmt  = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-  return { from: fmt(from), to: fmt(to) }
+function formatEmpDate(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const RISK_ACTION = (c) => c >= 0.7
+  ? { icon: '⚡', text: 'Arrange cover now', sub: 'High probability — immediate action advised' }
+  : c >= 0.4
+  ? { icon: '👀', text: 'Monitor closely', sub: 'Moderate signal — prepare a contingency' }
+  : { icon: '✓',  text: 'Keep on watch', sub: 'Weak signal — no immediate action needed' }
+
+function daysUntil(dateStr) {
+  const diff = Math.round((new Date(dateStr) - new Date()) / 86400000)
+  return diff <= 0 ? 'Imminent' : `in ${diff} day${diff === 1 ? '' : 's'}`
 }
 
 function EmpPredCard({ prediction }) {
-  const { predictedDate, leaveType, confidence, reason } = prediction
+  const { predictedDate, predictedDateStart, predictedDateEnd, leaveType, confidence, reason,
+          bradfordScore, bradfordBand, primaryStore, secondaryStore } = prediction
   const pct     = Math.round(confidence * 100)
   const color   = CONF_COLOR(confidence)
   const riskLbl = CONF_LABEL(confidence)
-  const range   = empDateRange(predictedDate, confidence)
   const signals = reason.split(';').map(s => s.trim()).filter(Boolean)
+  const action  = RISK_ACTION(confidence)
+  const countdown = daysUntil(predictedDate)
 
   // SVG ring geometry
   const R    = 30
@@ -62,6 +71,9 @@ function EmpPredCard({ prediction }) {
             style={{ background: color + '20', color, borderColor: color + '45' }}>
             {riskLbl}
           </span>
+          <span className="emp-pred-countdown" style={{ color }}>
+            🕐 {countdown}
+          </span>
         </div>
 
         <svg className="emp-conf-ring" width="76" height="76" viewBox="0 0 76 76">
@@ -78,17 +90,65 @@ function EmpPredCard({ prediction }) {
         </svg>
       </div>
 
+      {/* Risk meter — segmented band with marker */}
+      <div className="emp-risk-meter">
+        <div className="emp-risk-meter-track">
+          <div className="emp-risk-seg emp-risk-seg--low" />
+          <div className="emp-risk-seg emp-risk-seg--med" />
+          <div className="emp-risk-seg emp-risk-seg--high" />
+          <div className="emp-risk-meter-marker" style={{ left: `${pct}%` }} />
+        </div>
+        <div className="emp-risk-meter-labels">
+          <span>Low</span><span>Medium</span><span>High</span>
+        </div>
+      </div>
+
+      {/* Action recommendation */}
+      <div className="emp-pred-action" style={{ borderColor: color + '30', background: color + '0d' }}>
+        <span className="emp-pred-action-icon">{action.icon}</span>
+        <div className="emp-pred-action-body">
+          <div className="emp-pred-action-title" style={{ color }}>{action.text}</div>
+          <div className="emp-pred-action-sub">{action.sub}</div>
+        </div>
+      </div>
+
       {/* Date window */}
       <div className="emp-pred-window">
         <div className="emp-pred-window-label">Predicted window</div>
         <div className="emp-pred-window-row">
-          <span className="emp-pred-date">{range.from}</span>
+          <span className="emp-pred-date">{formatEmpDate(predictedDateStart)}</span>
           <svg width="20" height="10" viewBox="0 0 20 10" fill="none" className="emp-pred-arrow">
             <path d="M0 5h18M14 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span className="emp-pred-date">{range.to}</span>
+          <span className="emp-pred-date">{formatEmpDate(predictedDateEnd)}</span>
         </div>
       </div>
+
+      {/* Store mapping */}
+      {primaryStore && (
+        <div className="emp-pred-stores">
+          <span className="emp-pred-store-chip emp-pred-store-primary">🏪 {primaryStore}</span>
+          {secondaryStore
+            ? <span className="emp-pred-store-chip emp-pred-store-secondary">↔ {secondaryStore}</span>
+            : <span className="emp-pred-store-unmapped">⚠ No secondary store</span>
+          }
+        </div>
+      )}
+
+      {/* Bradford Factor */}
+      {bradfordBand && (
+        <div className="emp-pred-bradford" style={{
+          color: bradfordBand === 'RED' ? '#f87171' : bradfordBand === 'AMBER' ? '#fbbf24' : '#34d399',
+          borderColor: bradfordBand === 'RED' ? 'rgba(239,68,68,0.25)' : bradfordBand === 'AMBER' ? 'rgba(245,158,11,0.25)' : 'rgba(16,185,129,0.25)',
+          background: bradfordBand === 'RED' ? 'rgba(239,68,68,0.07)' : bradfordBand === 'AMBER' ? 'rgba(245,158,11,0.07)' : 'rgba(16,185,129,0.07)'
+        }}>
+          <span className="emp-pred-bradford-label">Sick Absence Severity (BF)</span>
+          <span className="emp-pred-bradford-score">{bradfordScore}</span>
+          <span className="emp-pred-bradford-band">
+            {bradfordBand === 'RED' ? '🔴 High disruption' : bradfordBand === 'AMBER' ? '🟡 Monitor' : '🟢 Low disruption'}
+          </span>
+        </div>
+      )}
 
       {/* Confidence fill bar */}
       <div className="emp-pred-bar-bg">
@@ -453,9 +513,22 @@ export default function EmployeePredictions() {
           />
         </div>
         <div className="control-group control-action">
-          <label>&nbsp;</label>
           <button className="btn-predict" onClick={handlePredict} disabled={employeeIds.length === 0 || loading}>
-            {loading ? 'Predicting…' : `🔮 Predict${employeeIds.length > 1 ? ` (${employeeIds.length})` : ''}`}
+            {loading ? (
+              <>
+                <span className="btn-predict-orb">🔮</span>
+                <span className="btn-predict-text">Predicting…</span>
+              </>
+            ) : (
+              <>
+                <span className="btn-predict-wand">🪄</span>
+                <span className="btn-predict-orb">🔮</span>
+                <span className="btn-predict-text">
+                  Predict{employeeIds.length > 1 ? ` (${employeeIds.length})` : ''}
+                </span>
+                <span className="btn-predict-wand btn-predict-wand--right">🪄</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -463,8 +536,17 @@ export default function EmployeePredictions() {
       {error && <ErrorMsg message={error} />}
       {loading && progress.total > 0 && (
         <div className="predict-progress">
+          {/* Floating stars */}
+          {[...Array(10)].map((_, i) => (
+            <span key={i} className={`predict-star predict-star--${i}`}>
+              {['✦','✧','⋆','★','✦','✧','⋆','★','✦','✧'][i]}
+            </span>
+          ))}
           <div className="predict-progress-header">
-            <span>Predicting employees…</span>
+            <span className="predict-progress-label">
+              <span className="predict-spin-orb">🔮</span>
+              Predicting employees…
+            </span>
             <span className="predict-progress-count">{progress.done} / {progress.total}</span>
           </div>
           <div className="predict-progress-track">
@@ -472,6 +554,10 @@ export default function EmployeePredictions() {
               className="predict-progress-fill"
               style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
             />
+            <div className="predict-progress-comet" style={{ left: `${Math.round((progress.done / progress.total) * 100)}%` }} />
+          </div>
+          <div className="predict-progress-pct">
+            {Math.round((progress.done / progress.total) * 100)}%
           </div>
         </div>
       )}
@@ -512,23 +598,6 @@ export default function EmployeePredictions() {
 
           {/* Main content */}
           <div className="emp-main">
-            {/* Pagination nav */}
-            {results.length > 1 && (() => {
-              const idx = results.findIndex(r => r.employee?.id === activeEmpId)
-              const prev = results[idx - 1]
-              const next = results[idx + 1]
-              return (
-                <div className="emp-pagination">
-                  <button className="emp-page-btn" disabled={!prev} onClick={() => prev && setActiveEmpId(prev.employee?.id)}>
-                    ← Prev
-                  </button>
-                  <span className="emp-page-info">{idx + 1} of {results.length}</span>
-                  <button className="emp-page-btn" disabled={!next} onClick={() => next && setActiveEmpId(next.employee?.id)}>
-                    Next →
-                  </button>
-                </div>
-              )
-            })()}
 
             {activeResult && (
               <div className="emp-unified card">
@@ -577,8 +646,135 @@ export default function EmployeePredictions() {
               <div className="emp-unified-section">
                 <div className="emp-unified-label">Prediction</div>
                 {activeResult.prediction30?.length === 0 && activeResult.prediction60?.length === 0
-                  ? <div className="empty-state" style={{ padding: '0.75rem' }}>No strong leave signal detected.</div>
-                  : <div className="emp-pred-cards">{(activeResult.prediction60 || []).map(p => <EmpPredCard key={p.employeeId + p.predictedDate} prediction={p} />)}</div>
+                  ? <div className="empty-state" style={{ padding: '0.75rem', fontSize: '0.82rem' }}>
+                      No strong leave signal detected for this employee.<br/>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                        This may be because they took planned leave very recently, have fewer than 2 planned leaves on record, or their next projected leave falls outside the selected window. Try a wider window.
+                      </span>
+                    </div>
+                  : (() => {
+                      const preds = activeResult.prediction60 || []
+                      const topPred = [...preds].sort((a, b) => b.confidence - a.confidence)[0]
+                      const topColor = topPred ? CONF_COLOR(topPred.confidence) : '#10b981'
+                      const topPct   = topPred ? Math.round(topPred.confidence * 100) : 0
+
+                      // Leave type breakdown from history
+                      const typeFreq = (activeResult.leaveHistory || []).reduce((acc, l) => {
+                        acc[l.leaveType] = (acc[l.leaveType] || 0) + 1
+                        return acc
+                      }, {})
+                      const totalLeaves = activeResult.leaveHistory.length || 1
+                      const typeEntries = Object.entries(typeFreq).sort((a, b) => b[1] - a[1])
+
+                      // Peak month
+                      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+                      const monthFreq = (activeResult.leaveHistory || []).reduce((acc, l) => {
+                        const m = new Date(l.leaveDate).getMonth(); acc[m] = (acc[m] || 0) + 1; return acc
+                      }, {})
+                      const peakEntry = Object.entries(monthFreq).sort((a, b) => b[1] - a[1])[0]
+
+                      // Avg gap
+                      const sorted = [...(activeResult.leaveHistory || [])].sort((a, b) => new Date(a.leaveDate) - new Date(b.leaveDate))
+                      let avgGap = null
+                      if (sorted.length > 1) {
+                        const gaps = sorted.slice(1).map((l, i) => (new Date(l.leaveDate) - new Date(sorted[i].leaveDate)) / 86400000)
+                        avgGap = Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length)
+                      }
+
+                      // Manager checklist based on top risk
+                      const checklist = topPred?.confidence >= 0.7
+                        ? ['Identify and brief a cover colleague', 'Review shift rota for the predicted window', 'Flag to HR if pattern is recurring', 'Ensure handover notes are up to date']
+                        : topPred?.confidence >= 0.4
+                        ? ['Monitor attendance in the coming weeks', 'Have a contingency plan ready', 'Check for any upcoming bank holidays nearby']
+                        : ['No immediate action required', 'Continue regular check-ins', 'Review again closer to the predicted date']
+
+                      return (
+                        <div className="emp-pred-section-layout">
+                          <div className="emp-pred-cards">
+                            {preds.map(p => <EmpPredCard key={p.employeeId + p.predictedDate} prediction={p} />)}
+                          </div>
+
+                          <div className="emp-risk-insights">
+                            {/* Risk summary header */}
+                            <div className="eri-header" style={{ borderColor: topColor + '40' }}>
+                              <div className="eri-header-left">
+                                <div className="eri-label">Overall Risk</div>
+                                <div className="eri-risk-val" style={{ color: topColor }}>{CONF_LABEL(topPred?.confidence || 0)}</div>
+                              </div>
+                              <div className="eri-score" style={{ background: topColor + '18', borderColor: topColor + '40', color: topColor }}>
+                                {topPct}%
+                              </div>
+                            </div>
+
+                            {/* Leave type breakdown */}
+                            {typeEntries.length > 0 && (
+                              <div className="eri-block">
+                                <div className="eri-block-title">Leave Type Breakdown</div>
+                                {typeEntries.map(([type, count]) => (
+                                  <div key={type} className="eri-type-row">
+                                    <span className="eri-type-dot" style={{ background: LEAVE_COLORS[type] || '#6b7280' }} />
+                                    <span className="eri-type-name">{type}</span>
+                                    <div className="eri-type-bar-bg">
+                                      <div className="eri-type-bar-fill"
+                                        style={{ width: `${Math.round((count / totalLeaves) * 100)}%`, background: LEAVE_COLORS[type] || '#6b7280' }} />
+                                    </div>
+                                    <span className="eri-type-pct">{Math.round((count / totalLeaves) * 100)}%</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Pattern stats */}
+                            <div className="eri-block">
+                              <div className="eri-block-title">Leave Patterns</div>
+                              <div className="eri-stats-grid">
+                                <div className="eri-stat">
+                                  <div className="eri-stat-icon">📅</div>
+                                  <div className="eri-stat-body">
+                                    <div className="eri-stat-label">Peak Month</div>
+                                    <div className="eri-stat-val">{peakEntry ? MONTHS[peakEntry[0]] : '—'}</div>
+                                  </div>
+                                </div>
+                                <div className="eri-stat">
+                                  <div className="eri-stat-icon">⏱️</div>
+                                  <div className="eri-stat-body">
+                                    <div className="eri-stat-label">Avg Gap</div>
+                                    <div className="eri-stat-val">{avgGap !== null ? `${avgGap}d` : '—'}</div>
+                                  </div>
+                                </div>
+                                <div className="eri-stat">
+                                  <div className="eri-stat-icon">📋</div>
+                                  <div className="eri-stat-body">
+                                    <div className="eri-stat-label">Total Leaves</div>
+                                    <div className="eri-stat-val">{activeResult.leaveHistory.length}</div>
+                                  </div>
+                                </div>
+                                <div className="eri-stat">
+                                  <div className="eri-stat-icon">½</div>
+                                  <div className="eri-stat-body">
+                                    <div className="eri-stat-label">Half Days</div>
+                                    <div className="eri-stat-val">{activeResult.halfLeaves.length}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Manager checklist */}
+                            <div className="eri-block">
+                              <div className="eri-block-title">Manager Actions</div>
+                              <div className="eri-checklist">
+                                {checklist.map((item, i) => (
+                                  <div key={i} className="eri-check-item">
+                                    <span className="eri-check-dot" style={{ background: topColor }} />
+                                    <span>{item}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()
                 }
               </div>
 

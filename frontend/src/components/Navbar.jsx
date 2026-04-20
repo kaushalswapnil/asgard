@@ -1,4 +1,4 @@
-import { NavLink, Link } from 'react-router-dom'
+import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import BrandIcon from './BrandIcon'
@@ -42,6 +42,8 @@ export default function Navbar() {
     localStorage.setItem('ebp_avatar', JSON.stringify(val))
   }
 
+  const navigate = useNavigate()
+
   const initials = user?.fullName?.split(' ').map(n => n[0]).slice(0, 2).join('') || '?'
   const role = user?.userRole === 'ADMIN' ? 'admin' : 'manager'
 
@@ -57,7 +59,7 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <div className="navbar-brand">
+      <div className="navbar-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
         <div className="brand-icon-3d">
           <BrandIcon size={36} />
         </div>
@@ -65,7 +67,6 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-links">
-        <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Dashboard</NavLink>
         <NavLink to="/store" className={({ isActive }) => isActive ? 'active' : ''}>Store Predictions</NavLink>
         <NavLink to="/employee" className={({ isActive }) => isActive ? 'active' : ''}>Employee Predictions</NavLink>
         <NavLink to="/reports"  className={({ isActive }) => isActive ? 'active' : ''}>Reports</NavLink>

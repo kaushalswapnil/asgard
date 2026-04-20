@@ -474,3 +474,36 @@
   transform: none;
   box-shadow: 0 0 8px rgba(59,130,246,.6);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   LIGHT MODE OVERRIDES
+   ═══════════════════════════════════════════════════════════ */
+[data-theme='light'] .abt-hero {
+  background: linear-gradient(160deg, #eff6ff 0%, #f5f3ff 50%, #ecfeff 100%);
+}
+[data-theme='light'] .abt-hero-title { color: #111827; }
+[data-theme='light'] .abt-hero-sub   { color: #6b7280; }
+
+[data-theme='light'] .abt-stat-card,
+[data-theme='light'] .abt-feature-card {
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border-color: rgba(0,0,0,0.1);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+[data-theme='light'] .abt-stat-label  { color: #6b7280; }
+[data-theme='light'] .abt-stat-value  { color: #111827; }
+[data-theme='light'] .abt-feat-title  { color: #111827; }
+[data-theme='light'] .abt-feat-desc   { color: #6b7280; }
+
+[data-theme='light'] .abt-desc-card {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+[data-theme='light'] .abt-desc-text   { color: #374151; }
+
+[data-theme='light'] .abt-quote-card {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+[data-theme='light'] .abt-quote-text  { color: #374151; }
+[data-theme='light'] .abt-quote-author { color: #6b7280; }

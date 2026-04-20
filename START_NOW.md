@@ -114,7 +114,7 @@ VITE ready in Xms  ➜  Local: http://localhost:5173/
 | **Backend API** | http://localhost:8080/api | — |
 | **Quarkus Dev UI** | http://localhost:8080/q/dev/ | — |
 | **pgAdmin** | http://localhost:5050 | admin@ebp.com / admin |
-| **Superset** | http://localhost:8088 | admin / admin |
+| **Superset** | http://localhost:8088 | admin / admin | (Future Implemntaions TODO)
 
 ---
 
@@ -192,5 +192,5 @@ Quarkus backend (Java 21)
     └── OpenAI API  — embeddings (text-embedding-3-small)
                       chat (gpt-4o-mini)
 
-Superset (localhost:8088) — reads from PostgreSQL for analytics
+Superset (localhost:8088) — reads from PostgreSQL for analytics (Future implemntations TODO)
 ```

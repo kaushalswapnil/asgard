@@ -166,3 +166,33 @@
   .pred-right-block { align-items: flex-start; }
   .pred-signal-chip { white-space: normal; }
 }
+
+/* ── Bradford Factor pill ────────────────────────────────────────────── */
+.pred-bradford-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 1px solid;
+  line-height: 1.5;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+/* ── Collision risk badge ─────────────────────────────────────────────── */
+.pred-collision-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(239,68,68,0.12);
+  color: #f87171;
+  border: 1px solid rgba(239,68,68,0.35);
+  white-space: nowrap;
+  animation: collisionPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes collisionPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}

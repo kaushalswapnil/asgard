@@ -493,3 +493,38 @@
   text-transform:uppercase; letter-spacing:0.4px;
   display:flex; align-items:center; gap:5px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   LIGHT MODE OVERRIDES
+   ═══════════════════════════════════════════════════════════ */
+[data-theme='light'] .navbar {
+  background: rgba(255,255,255,0.82);
+  border-bottom-color: rgba(0,0,0,0.08);
+}
+[data-theme='light'] .navbar-brand-text { color: #111827; }
+[data-theme='light'] .navbar-links a    { color: #374151; }
+[data-theme='light'] .navbar-links a:hover { color: #1d4ed8; }
+[data-theme='light'] .navbar-links a.active {
+  color: #1d4ed8;
+  background: rgba(37,99,235,0.08);
+}
+[data-theme='light'] .navbar-links a.active::after { background: #2563eb; }
+[data-theme='light'] .navbar-theme-toggle {
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.1);
+}
+[data-theme='light'] .profile-dropdown {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+[data-theme='light'] .profile-name      { color: #111827; }
+[data-theme='light'] .profile-store     { color: #6b7280; }
+[data-theme='light'] .profile-info-row  { color: #374151; }
+[data-theme='light'] .profile-divider   { background: #f3f4f6; }
+[data-theme='light'] .profile-section-label { color: #9ca3af; }
+[data-theme='light'] .avatar-option {
+  background: #f9fafb;
+  border-color: #e5e7eb;
+}
+[data-theme='light'] .avatar-option:hover { background: #f3f4f6; }

@@ -24,6 +24,11 @@ public class Employee extends PanacheEntityBase {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     public Location location;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "secondary_location_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    public Location secondaryLocation;
+
     @Column(name = "hire_date")
     public LocalDate hireDate;
 

@@ -53,8 +53,7 @@ export default function Dashboard() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Dashboard</h1>
-        <p>Overview of all EBP stores across the UK</p>
+        <h1>Employee Behaviour Prediction</h1>
       </div>
 
       <div className="dashboard-grid">

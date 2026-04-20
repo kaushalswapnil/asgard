@@ -32,3 +32,10 @@ export const predictStore = (locationId, days = 30, topN = 5) =>
   api.get(`/predictions/store/${locationId}`, { params: { days, topN } })
 export const predictEmployee = (employeeId, days = 60) =>
   api.get(`/predictions/employee/${employeeId}`, { params: { days } })
+
+export const getStoreReplacements = (locationId, days = 30) =>
+  api.get(`/replacements/store/${locationId}`, { params: { days } })
+export const getEmployeeReplacement = (employeeId, days = 30) =>
+  api.get(`/replacements/employee/${employeeId}`, { params: { days } })
+export const submitSwapAction = (payload) =>
+  api.post('/replacements/action', payload)
